@@ -1,5 +1,7 @@
 package days
 
+import kotlinx.coroutines.*
+import kotlinx.coroutines.awaitAll
 class Day5 : Day {
     private val endsWithMap = Regex(".*map:\\n")
     override fun solvePart1(): String {
@@ -31,9 +33,23 @@ class Day5 : Day {
         val input = super.readFile("day_5.txt")
         val (naiveSeeds, mappers) = interpretInput(input)
 
-        val seeds = naiveSeeds.windowed(2, 2) {(seed, range) -> seed..<seed + range}.fold(emptyList<Long>()) { acc, longRange -> acc + longRange.toList() }
+        val seeds = naiveSeeds.asSequence()
+            .windowed(2, 2) { (seed, range) -> seed..<seed + range }.flatten()
 
-        return seeds.minOf { seed -> mappers.fold(seed) { acc, mapper -> mapper.convert(acc) } }.toString()
+        return runBlocking { parallelSeedMapping(seeds, mappers).toString() }
+    }
+
+    private suspend fun parallelSeedMapping(seeds: Sequence<Long>, mappers: List<Mapper>): Long {
+        return coroutineScope {
+            val deferredResults = seeds.map { seed ->
+                async {
+                    mappers.fold(seed) { acc, mapper -> mapper.convert(acc) }
+                }
+            }
+
+            val mappedSeeds = deferredResults.toList().awaitAll()
+            mappedSeeds.minOrNull() ?: throw NoSuchElementException("No minimum value found")
+        }
     }
 
     private data class Mapper(val map: List<DestinationSourceRange>) {
@@ -55,6 +71,4 @@ class Day5 : Day {
             }
         }
     }
-
-    private data class SeedRange(val seedStart: Long, val seedRange: Long)
 }
