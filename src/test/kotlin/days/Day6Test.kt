@@ -4,11 +4,11 @@ import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.Assertions.*
 
-class Day5Test {
+class Day6Test {
 
     @Test
     fun solve() {
-        val day5 = Day5()
-        println(day5.solve())
+        val day6 = Day6()
+        println(day6.solve())
     }
 }
